@@ -1,9 +1,7 @@
-# EduConnect 🎓
+# EduConnect - Student Faculty Portal🎓
 
 A university management system built with **Blazor Server** (.NET 10) and **Entity Framework Core**, featuring role-based access for Admins, Faculty, and Students.
 
-> **Course Assignment:** Visual Programming – Assignment 3  
-> **Team:** Usman · Daniyal · Rafiullah
 
 ---
 
@@ -232,15 +230,6 @@ This runs all EF Core LINQ demonstrations from `EfCoreQueryRunner.cs` and exits 
 
 ---
 
-## Team Contributions
-
-| Member | Responsibilities |
-|--------|-----------------|
-| **Usman** | Core architecture · All Models & Interfaces · Services (Auth, Student, Course, Grade, Faculty, Notification) · EF Core DbContext & Seed Data · Migrations · Program.cs DI pipeline · Custom Exceptions · EfCoreQueryRunner |
-| **Daniyal** | Admin pages (StudentList, StudentAdd, StudentEdit, StudentDetail, AdminCourses, AdminFaculty) · Shared components (AlertBox, CourseCard, StudentCard, Pagination) |
-| **Rafiullah** | Faculty pages (FacultyCourses, GradeSubmission) · Student pages (Enroll, StudentGrades) · Dashboards (Admin, Faculty, Student) · Layout components (NavMenu, MainLayout) |
-
----
 
 ## Design Principles
 
