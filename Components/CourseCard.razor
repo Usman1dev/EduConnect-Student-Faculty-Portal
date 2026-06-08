@@ -1,0 +1,39 @@
+@using EduConnect.Models
+<div class="card h-100">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-primary fw-bold">@Course.Code</h6>
+            <StatusBadge Status="@Course.EnrollmentStatus.ToString()" />
+        </div>
+    </div>
+    <div class="card-body">
+        <h5 class="card-title">@Course.Title</h5>
+        <p class="text-muted small mb-3">
+            <i class="bi bi-clock-history me-1"></i>@Course.CreditHours credit hours
+        </p>
+        <div class="progress mb-2" style="height:8px;">
+            <div class="progress-bar @ProgressClass" style="width:@Percent%"></div>
+        </div>
+        <div class="small text-muted d-flex justify-content-between">
+            <span><i class="bi bi-people me-1"></i>@Course.Enrolled.Count / @Course.MaxCapacity enrolled</span>
+            <span class="fw-semibold">@Math.Round(Percent)%</span>
+        </div>
+    </div>
+    @if (OnEnroll.HasDelegate)
+    {
+        <div class="card-footer bg-transparent">
+            <button class="btn btn-primary w-100"
+                    disabled="@(Course.EnrollmentStatus == EnrollmentStatus.Full)"
+                    @onclick="() => OnEnroll.InvokeAsync(Course)">
+                <i class="bi @(Course.EnrollmentStatus == EnrollmentStatus.Full ? "bi-x-circle" : "bi-plus-circle")"></i>
+                @(Course.EnrollmentStatus == EnrollmentStatus.Full ? "Course full" : "Enroll")
+            </button>
+        </div>
+    }
+</div>
+@code {
+    [Parameter, EditorRequired] public Course Course { get; set; } = default!;
+    [Parameter] public EventCallback<Course> OnEnroll { get; set; }
+    private double Percent => Course.MaxCapacity > 0 ? Math.Min(100, (double)Course.Enrolled.Count / Course.MaxCapacity * 100) : 0;
+    private string ProgressClass => Percent >= 100 ? "bg-danger" : Percent >= 70 ? "bg-warning" : "bg-success";
+}

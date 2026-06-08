@@ -1,0 +1,35 @@
+@page "/courses"
+@inject ICourseService CourseSvc
+
+<AuthGuard>
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-journal-text"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">Course Catalog</h2>
+                <p class="mb-0 text-muted">Browse all available courses</p>
+            </div>
+        </div>
+    </div>
+
+    @{
+        var all = CourseSvc.GetAll().ToList();
+    }
+
+    @if (!all.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <span>No courses available right now.</span>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
+            @foreach (var course in all)
+            {
+                <div class="col"><CourseCard Course="course" /></div>
+            }
+        </div>
+    }
+</AuthGuard>

@@ -1,0 +1,91 @@
+@page "/admin/students/add"
+@inject IStudentService StudentSvc
+@inject NavigationManager Nav
+
+<AuthGuard RequiredRole="Admin">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-person-plus-fill"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">Add Student</h2>
+                <p class="mb-0 text-muted">Create a new student account</p>
+            </div>
+        </div>
+    </div>
+
+    <AlertBox Message="@_message" Type="@_alert" />
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label"><i class="bi bi-person me-1 text-muted"></i> Full name</label>
+                    <input class="form-control @Invalid(nameof(_student.FullName))" @bind="_student.FullName" />
+                    <div class="invalid-feedback">Full name is required.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label"><i class="bi bi-envelope me-1 text-muted"></i> Email</label>
+                    <input class="form-control @Invalid(nameof(_student.Email))" @bind="_student.Email" />
+                    <div class="invalid-feedback">Valid email is required.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><i class="bi bi-calendar3 me-1 text-muted"></i> Semester</label>
+                    <select class="form-select" @bind="_student.Semester">
+                        @for (int i = 1; i <= 8; i++) { <option value="@i">Semester @i</option> }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><i class="bi bi-award me-1 text-muted"></i> CGPA</label>
+                    <input type="number" step="0.01" min="0" max="4"
+                           class="form-control @Invalid(nameof(_student.CGPA))" @bind="_student.CGPA" />
+                    <div class="invalid-feedback">CGPA must be 0.0 to 4.0.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><i class="bi bi-lock me-1 text-muted"></i> Password</label>
+                    <input type="password" class="form-control @Invalid(nameof(_student.PasswordHash))" @bind="_student.PasswordHash" />
+                    <div class="invalid-feedback">Password is required.</div>
+                </div>
+                <div class="col-12 d-flex gap-2 mt-4">
+                    <button class="btn btn-primary" @onclick="Save">
+                        <i class="bi bi-check2-circle"></i> Save student
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="Back">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</AuthGuard>
+
+@code {
+    Student _student = new();
+    HashSet<string> _errors = new();
+    string? _message;
+    AlertBox.AlertType _alert = AlertBox.AlertType.Info;
+
+    string Invalid(string f) => _errors.Contains(f) ? "is-invalid" : "";
+    void Back() => Nav.NavigateTo("/admin/students");
+
+    void Save()
+    {
+        _errors.Clear();
+        if (string.IsNullOrWhiteSpace(_student.FullName)) _errors.Add(nameof(_student.FullName));
+        if (string.IsNullOrWhiteSpace(_student.Email) || !_student.Email.Contains("@")) _errors.Add(nameof(_student.Email));
+        if (_student.CGPA < 0 || _student.CGPA > 4) _errors.Add(nameof(_student.CGPA));
+        if (string.IsNullOrWhiteSpace(_student.PasswordHash)) _errors.Add(nameof(_student.PasswordHash));
+        if (_errors.Any()) return;
+        try
+        {
+            StudentSvc.Add(_student);
+            _student = new();
+            _message = "Student saved successfully.";
+            _alert = AlertBox.AlertType.Success;
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _alert = AlertBox.AlertType.Error;
+        }
+    }
+}

@@ -1,0 +1,112 @@
+@page "/notifications"
+@implements IDisposable
+@inject NotificationService NotifSvc
+@inject AuthStateService AuthState
+
+<AuthGuard>
+    <div class="role-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center">
+                <div class="role-icon"><i class="bi bi-bell-fill"></i></div>
+                <div class="ms-3">
+                    <h2 class="mb-1">Notifications</h2>
+                    <p class="mb-0 text-muted">
+                        @Items.Count(n => !n.IsRead) unread of @Items.Count total
+                    </p>
+                </div>
+            </div>
+            @if (Items.Any(n => !n.IsRead))
+            {
+                <button class="btn btn-outline-primary" @onclick="MarkAll">
+                    <i class="bi bi-check2-all"></i> Mark all read
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (!Items.Any())
+    {
+        <div class="card">
+            <div class="card-body text-center" style="padding:3rem 1rem;">
+                <i class="bi bi-bell-slash" style="font-size:3rem;color:var(--ec-text-soft);"></i>
+                <h5 class="mt-3 mb-2">No notifications yet</h5>
+                <p class="text-muted mb-0">You're all caught up — new updates will appear here.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var n in Items)
+            {
+                <div class="list-group-item @(n.IsRead ? "" : "fw-semibold")"
+                     style="@(n.IsRead ? "" : "background:var(--ec-primary-50);")">
+                    <div class="d-flex align-items-start gap-3">
+                        <div style="width:36px;height:36px;border-radius:10px;background:var(--ec-primary-50);color:var(--ec-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="bi @IconFor(n.NotificationType)"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                                <span class="badge @BadgeFor(n.NotificationType)">@n.NotificationType</span>
+                                <small class="text-muted">@n.Timestamp.ToString("MMM d, yyyy · h:mm tt")</small>
+                            </div>
+                            <div>@n.Message</div>
+                            @if (!n.IsRead)
+                            {
+                                <button class="btn btn-link btn-sm p-0 mt-1" @onclick="() => Mark(n.Id)">
+                                    Mark as read
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</AuthGuard>
+
+@code {
+    List<Notification> Items = new();
+
+    protected override void OnInitialized()
+    {
+        Load();
+        NotifSvc.OnNewNotification += OnNotif;
+    }
+
+    void Load()
+    {
+        if (AuthState.State.CurrentUser != null)
+            Items = NotifSvc.GetForUser(AuthState.State.CurrentUser.Id);
+    }
+
+    void OnNotif(Notification n)
+    {
+        if (n.UserId == AuthState.State.CurrentUser?.Id)
+        {
+            Load();
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    void Mark(Guid id) { NotifSvc.MarkAsRead(id); Load(); }
+    void MarkAll() { if (AuthState.State.CurrentUser != null) NotifSvc.MarkAllAsRead(AuthState.State.CurrentUser.Id); Load(); }
+
+    string IconFor(NotificationType t) => t switch
+    {
+        NotificationType.Announcement => "bi-megaphone",
+        NotificationType.GradePosted => "bi-award",
+        NotificationType.Enrollment => "bi-journal-plus",
+        _ => "bi-info-circle"
+    };
+
+    string BadgeFor(NotificationType t) => t switch
+    {
+        NotificationType.Announcement => "bg-warning",
+        NotificationType.GradePosted => "bg-success",
+        NotificationType.Enrollment => "bg-info",
+        _ => "bg-secondary"
+    };
+
+    public void Dispose() => NotifSvc.OnNewNotification -= OnNotif;
+}

@@ -1,0 +1,232 @@
+@page "/admin/courses"
+@using EduConnect.Models
+@using EduConnect.Services
+@using EduConnect.Interfaces
+@inject ICourseService CourseService
+@inject FacultyService FacultyService
+@inject NavigationManager Nav
+
+<AuthGuard RequiredRole="Admin">
+    <div class="role-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center">
+                <div class="role-icon"><i class="bi bi-book-fill"></i></div>
+                <div class="ms-3">
+                    <h2 class="mb-1">Courses</h2>
+                    <p class="mb-0 text-muted">Manage all course offerings</p>
+                </div>
+            </div>
+            <button class="btn btn-primary" @onclick="ShowAddForm">
+                <i class="bi bi-plus-circle"></i> Add course
+            </button>
+        </div>
+    </div>
+
+    <AlertBox Message="@errorMessage" Type="AlertBox.AlertType.Error" />
+
+    @if (showAddForm)
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Add New Course</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Course Code</label>
+                        <input type="text" class="form-control" @bind="newCourse.Code" placeholder="CS-101" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Course Title</label>
+                        <input type="text" class="form-control" @bind="newCourse.Title" placeholder="Introduction to Programming" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Credit Hours</label>
+                        <input type="number" class="form-control" @bind="newCourse.CreditHours" min="1" max="6" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Max Capacity</label>
+                        <input type="number" class="form-control" @bind="newCourse.MaxCapacity" min="1" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Assign Faculty</label>
+                        <select class="form-select" @onchange="OnFacultySelected">
+                            <option value="">Select Faculty...</option>
+                            @foreach (var faculty in FacultyService.GetAll())
+                            {
+                                <option value="@faculty.Id">@faculty.FullName</option>
+                            }
+                        </select>
+                    </div>
+                    @if (newCourse.AssignedFacultyIds.Any())
+                    {
+                        <div class="col-12">
+                            <label class="form-label d-block">Assigned Faculty:</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var facultyId in newCourse.AssignedFacultyIds)
+                                {
+                                    var faculty = FacultyService.GetById(facultyId);
+                                    <span class="badge bg-info d-flex align-items-center">
+                                        @faculty?.FullName 
+                                        <button type="button" class="btn-close btn-close-white btn-sm ms-2" style="font-size: 0.5rem;" @onclick="() => RemoveFaculty(facultyId)"></button>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    }
+                    <div class="col-12 d-flex gap-2 mt-4">
+                        <button class="btn btn-success" @onclick="AddCourse">
+                            <i class="bi bi-check-circle"></i> Save Course
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="CancelAddForm">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Title</th>
+                    <th class="text-center">Credits</th>
+                    <th class="text-center">Capacity</th>
+                    <th class="text-center">Enrolled</th>
+                    <th>Faculty</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var course in CourseService.GetAll())
+                {
+                    <tr>
+                        <td><strong>@course.Code</strong></td>
+                        <td>@course.Title</td>
+                        <td class="text-center">@course.CreditHours</td>
+                        <td class="text-center">@course.MaxCapacity</td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary">@course.Enrolled.Count</span>
+                        </td>
+                        <td>
+                            @if (!course.AssignedFacultyIds.Any())
+                            {
+                                <span class="text-muted fst-italic">None assigned</span>
+                            }
+                            else
+                            {
+                                @foreach (var facultyId in course.AssignedFacultyIds)
+                                {
+                                    var faculty = FacultyService.GetById(facultyId);
+                                    <span class="badge bg-light text-dark border me-1 mb-1">@faculty?.FullName</span>
+                                }
+                            }
+                        </td>
+                        <td class="text-center">
+                            <StatusBadge Status="course.EnrollmentStatus" />
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(course)" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <ConfirmDialog IsVisible="_showConfirm" Title="Delete course"
+                   Message="@DeleteMessage"
+                   OnCancelled="CancelDelete" OnConfirmed="ConfirmDelete" />
+
+</AuthGuard>
+
+@code {
+    private Course newCourse = new();
+    private bool showAddForm = false;
+    private string errorMessage = "";
+    
+    private Course? _toDelete;
+    private bool _showConfirm;
+
+    private string DeleteMessage => $"Are you sure you want to delete {_toDelete?.Code}? This cannot be undone.";
+
+    private void ShowAddForm()
+    {
+        showAddForm = true;
+        newCourse = new();
+        errorMessage = "";
+    }
+
+    private void CancelAddForm()
+    {
+        showAddForm = false;
+        errorMessage = "";
+    }
+
+    private void OnFacultySelected(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var facultyId) && facultyId != Guid.Empty)
+        {
+            if (!newCourse.AssignedFacultyIds.Contains(facultyId))
+            {
+                newCourse.AssignedFacultyIds.Add(facultyId);
+            }
+        }
+    }
+
+    private void RemoveFaculty(Guid facultyId)
+    {
+        newCourse.AssignedFacultyIds.Remove(facultyId);
+    }
+
+    private void AddCourse()
+    {
+        try
+        {
+            errorMessage = "";
+            CourseService.Add(newCourse);
+            showAddForm = false;
+            newCourse = new();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void AskDelete(Course c)
+    {
+        _toDelete = c;
+        _showConfirm = true;
+    }
+
+    private void CancelDelete()
+    {
+        _showConfirm = false;
+        _toDelete = null;
+    }
+
+    private void ConfirmDelete()
+    {
+        try
+        {
+            if (_toDelete != null)
+            {
+                CourseService.Delete(_toDelete.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            _showConfirm = false;
+            _toDelete = null;
+        }
+    }
+}

@@ -1,0 +1,195 @@
+@using EduConnect.Models
+@using EduConnect.Services
+@inject GradeService GradeService
+@inject NotificationService NotificationService
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-pencil-square me-2"></i>
+            @Title
+        </h5>
+    </div>
+    <div class="card-body">
+        <EditForm Model="@Grade" OnValidSubmit="@SubmitGrade">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="alert alert-danger" />
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="studentSelect" class="form-label">Student</label>
+                    <InputSelect id="studentSelect" class="form-select" @bind-Value="Grade.StudentId">
+                        <option value="">Select a student</option>
+                        @foreach (var student in Students)
+                        {
+                            <option value="@student.Id">@student.FullName</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Grade.StudentId)" class="text-danger small" />
+                </div>
+                <div class="col-md-6">
+                    <label for="courseSelect" class="form-label">Course</label>
+                    <InputSelect id="courseSelect" class="form-select" @bind-Value="Grade.CourseId">
+                        <option value="">Select a course</option>
+                        @foreach (var course in Courses)
+                        {
+                            <option value="@course.Id">@course.Code - @course.Title</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Grade.CourseId)" class="text-danger small" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="marksInput" class="form-label">Marks (0-100)</label>
+                    <InputNumber id="marksInput" class="form-control" @bind-Value="Grade.Marks" />
+                    <ValidationMessage For="@(() => Grade.Marks)" class="text-danger small" />
+                    <div class="form-text">Enter marks between 0 and 100</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="creditHoursInput" class="form-label">Credit Hours</label>
+                    <InputNumber id="creditHoursInput" class="form-control" @bind-Value="Grade.CreditHours" />
+                    <ValidationMessage For="@(() => Grade.CreditHours)" class="text-danger small" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Grade Preview</label>
+                    <div class="form-control bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Letter Grade:</span>
+                            <span class="badge @GetGradeBadgeClass(Grade.LetterGrade) fs-6">
+                                @Grade.LetterGrade
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <span>Grade Points:</span>
+                            <span class="fw-bold">@Grade.GradePoints.ToString("0.0")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Grade.CourseId.ToString()) && !string.IsNullOrEmpty(Grade.StudentId.ToString()))
+            {
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <div>
+                            <strong>Grade Scale:</strong>
+                            @("A (≥85), B (≥70), C (≥55), D (≥45), F (<45)")
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Reset
+                </button>
+                <button type="submit" class="btn btn-primary" disabled="@IsSubmitting">
+                    @if (IsSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        <span>Submitting...</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-check-circle me-1"></i>
+                        <span>Submit Grade</span>
+                    }
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Submit Grade";
+
+    [Parameter]
+    public List<global::EduConnect.Models.Student> Students { get; set; } = new();
+
+    [Parameter]
+    public List<Course> Courses { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<GradeRecord> OnGradeSubmitted { get; set; }
+
+    private GradeRecord Grade { get; set; } = new();
+    private bool IsSubmitting { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Set default credit hours
+        Grade.CreditHours = 3;
+    }
+
+    private async Task SubmitGrade()
+    {
+        IsSubmitting = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get course title for the grade record
+            var course = Courses.FirstOrDefault(c => c.Id == Grade.CourseId);
+            if (course != null)
+            {
+                Grade.CourseTitle = course.Title;
+            }
+
+            // Submit grade
+            GradeService.SubmitGrade(Grade);
+
+            // Send notification to student
+            var student = Students.FirstOrDefault(s => s.Id == Grade.StudentId);
+            if (student != null && course != null)
+            {
+                NotificationService.AddNotification(
+                    $"Your grade for {course.Code} has been posted: {Grade.LetterGrade}",
+                    NotificationType.GradePosted,
+                    student.Id
+                );
+            }
+
+            // Notify parent component
+            await OnGradeSubmitted.InvokeAsync(Grade);
+
+            // Reset form
+            ResetForm();
+
+            // Show success message
+            await JSRuntime.InvokeVoidAsync("alert", "Grade submitted successfully!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error submitting grade: {ex.Message}");
+        }
+        finally
+        {
+            IsSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetForm()
+    {
+        Grade = new GradeRecord { CreditHours = 3 };
+    }
+
+    private string GetGradeBadgeClass(string letterGrade)
+    {
+        return letterGrade switch
+        {
+            "A" => "bg-success",
+            "B" => "bg-info",
+            "C" => "bg-warning",
+            "D" => "bg-orange",
+            _ => "bg-danger"
+        };
+    }
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+}

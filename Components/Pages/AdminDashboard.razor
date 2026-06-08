@@ -1,0 +1,91 @@
+@page "/admin/dashboard"
+@inject IStudentService StudentSvc
+@inject ICourseService CourseSvc
+@inject AuthStateService AuthState
+
+<AuthGuard RequiredRole="Admin">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-shield-check"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">Admin Dashboard</h2>
+                <p class="mb-0 text-muted">
+                    Welcome back, <strong>@AuthState.State.CurrentUser?.FullName</strong> ·
+                    full system overview & management tools
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+                    <div class="stat-label">Total students</div>
+                    <div class="stat-value">@StudentSvc.GetAll().Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#dcfce7;color:var(--ec-success);"><i class="bi bi-journal-bookmark-fill"></i></div>
+                    <div class="stat-label">Total courses</div>
+                    <div class="stat-value">@CourseSvc.GetAll().Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#fef3c7;color:#d97706;"><i class="bi bi-person-check-fill"></i></div>
+                    <div class="stat-label">Total enrollments</div>
+                    <div class="stat-value">@CourseSvc.GetAll().Sum(c => c.Enrolled.Count)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick actions -->
+    <h4 class="mb-3" style="font-size:1.05rem;color:var(--ec-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Quick actions</h4>
+    <div class="row g-3">
+        <div class="col-sm-6 col-lg-3">
+            <a class="card h-100 text-decoration-none is-clickable" href="/admin/students">
+                <div class="card-body">
+                    <div class="feature-icon mb-2"><i class="bi bi-people"></i></div>
+                    <h5 class="card-title">Manage students</h5>
+                    <p class="text-muted mb-0" style="font-size:.88rem;">Add, edit, view & delete student records.</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a class="card h-100 text-decoration-none is-clickable" href="/admin/courses">
+                <div class="card-body">
+                    <div class="feature-icon mb-2" style="background:#dcfce7;color:var(--ec-success);"><i class="bi bi-book"></i></div>
+                    <h5 class="card-title">Manage courses</h5>
+                    <p class="text-muted mb-0" style="font-size:.88rem;">Create and update course offerings.</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a class="card h-100 text-decoration-none is-clickable" href="/admin/reports/grades">
+                <div class="card-body">
+                    <div class="feature-icon mb-2" style="background:#fef3c7;color:#d97706;"><i class="bi bi-bar-chart"></i></div>
+                    <h5 class="card-title">Grade report</h5>
+                    <p class="text-muted mb-0" style="font-size:.88rem;">Review ranked student performance.</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a class="card h-100 text-decoration-none is-clickable" href="/admin/notifications">
+                <div class="card-body">
+                    <div class="feature-icon mb-2" style="background:#fee2e2;color:var(--ec-danger);"><i class="bi bi-megaphone"></i></div>
+                    <h5 class="card-title">Broadcast</h5>
+                    <p class="text-muted mb-0" style="font-size:.88rem;">Send announcements by role.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</AuthGuard>

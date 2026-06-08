@@ -1,0 +1,85 @@
+@page "/admin/reports/grades"
+@using EduConnect.Data
+@using Microsoft.EntityFrameworkCore
+@inject EduConnectDbContext DbContext
+
+<AuthGuard RequiredRole="Admin">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-bar-chart-fill"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">Grade Report</h2>
+                <p class="mb-0 text-muted">Ranked student performance overview</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card h-100"><div class="card-body">
+                <div class="stat-icon" style="background:#dcfce7;color:var(--ec-success);"><i class="bi bi-trophy-fill"></i></div>
+                <div class="stat-label">High performers (≥3.5)</div>
+                <div class="stat-value text-success">@_students.Count(s => s.CGPA >= 3.5m)</div>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100"><div class="card-body">
+                <div class="stat-icon"><i class="bi bi-hand-thumbs-up-fill"></i></div>
+                <div class="stat-label">Good standing (2.0–3.5)</div>
+                <div class="stat-value">@_students.Count(s => s.CGPA >= 2m && s.CGPA < 3.5m)</div>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card h-100"><div class="card-body">
+                <div class="stat-icon" style="background:#fee2e2;color:var(--ec-danger);"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div class="stat-label">At risk (&lt; 2.0)</div>
+                <div class="stat-value text-danger">@_students.Count(s => s.CGPA < 2m)</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr><th class="text-center">Rank</th><th>Student</th><th>Email</th><th class="text-center">CGPA</th><th class="text-center">Grades</th></tr>
+            </thead>
+            <tbody>
+                @{ var rank = 1; }
+                @foreach (var s in _students.OrderByDescending(s => s.CGPA))
+                {
+                    <tr>
+                        <td class="text-center">
+                            @if (rank <= 3)
+                            {
+                                <span class="badge @(rank == 1 ? "bg-warning" : rank == 2 ? "bg-secondary" : "bg-orange")">
+                                    <i class="bi bi-trophy-fill"></i> @rank
+                                </span>
+                            }
+                            else { <span class="text-muted">#@rank</span> }
+                        </td>
+                        <td class="fw-semibold">@s.FullName</td>
+                        <td class="text-muted">@s.Email</td>
+                        <td class="text-center">
+                            <span class="badge @(s.CGPA >= 3.5m ? "bg-success" : s.CGPA >= 2m ? "bg-warning" : "bg-danger")">
+                                @s.CGPA.ToString("0.00")
+                            </span>
+                        </td>
+                        <td class="text-center">@s.Grades.Count</td>
+                    </tr>
+                    rank++;
+                }
+            </tbody>
+        </table>
+    </div>
+</AuthGuard>
+
+@code {
+    private List<EduConnect.Models.Student> _students = new();
+
+    protected override void OnInitialized()
+    {
+        _students = DbContext.Students
+            .Include(s => s.Grades)
+            .ToList();
+    }
+}

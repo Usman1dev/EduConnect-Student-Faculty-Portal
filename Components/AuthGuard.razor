@@ -1,0 +1,23 @@
+@using EduConnect.Models
+@inject AuthStateService AuthState
+@inject NavigationManager Nav
+
+@if (CanRender)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? RequiredRole { get; set; }
+    [Parameter] public bool RequireAuth { get; set; } = true;
+    private bool CanRender { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!RequireAuth) { CanRender = true; return; }
+        if (!AuthState.State.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        if (!string.IsNullOrWhiteSpace(RequiredRole) && AuthState.State.Role != RequiredRole) { Nav.NavigateTo("/unauthorized"); return; }
+        CanRender = true;
+    }
+}

@@ -1,0 +1,100 @@
+@page "/faculty/grades"
+@inject ICourseService CourseSvc
+@inject IGradeService GradeSvc
+@inject AuthStateService AuthState
+
+<AuthGuard RequiredRole="Faculty">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-pencil-square text-success"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">Submit Grades</h2>
+                <p class="mb-0 text-muted">Enter marks for students in your courses</p>
+            </div>
+        </div>
+    </div>
+
+    <AlertBox Message="@_message" Type="@_alert" />
+
+    <div class="card mb-4"><div class="card-body">
+        <label class="form-label fw-semibold">Select course</label>
+        <select class="form-select" @bind="_selectedCourseId" @bind:after="OnCourseSelected">
+            <option value="">— Choose a course —</option>
+            @foreach (var c in Courses) { <option value="@c.Id">@c.Code · @c.Title</option> }
+        </select>
+    </div></div>
+
+    @if (_rows.Any())
+    {
+        <div class="table-responsive mb-3">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Student</th><th style="width:180px;">Marks (0-100)</th><th class="text-center">Grade</th><th class="text-center">Status</th></tr></thead>
+                <tbody>
+                    @foreach (var r in _rows)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@r.StudentName</td>
+                            <td>
+                                <input type="number" min="0" max="100"
+                                       class="form-control @(string.IsNullOrEmpty(r.Error) ? "" : "is-invalid")"
+                                       @bind="r.Marks" @bind:after="() => ValidateRow(r)" />
+                                <div class="invalid-feedback">@r.Error</div>
+                            </td>
+                            <td class="text-center"><span class="badge @GradeBadge(r.Grade)">@r.Grade</span></td>
+                            <td class="text-center">
+                                @if (string.IsNullOrEmpty(r.Error)) { <i class="bi bi-check-circle-fill text-success"></i> }
+                                else { <i class="bi bi-exclamation-triangle-fill text-warning"></i> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <button class="btn btn-primary" disabled="@_rows.Any(r => !string.IsNullOrEmpty(r.Error))" @onclick="Submit">
+            <i class="bi bi-check2-circle"></i> Submit grades
+        </button>
+    }
+</AuthGuard>
+
+@code {
+    Guid? _selectedCourseId;
+    List<GradeRow> _rows = new();
+    string? _message;
+    AlertBox.AlertType _alert = AlertBox.AlertType.Info;
+
+    List<Course> Courses => CourseSvc.GetForFaculty(AuthState.State.CurrentUser!.Id);
+
+    void OnCourseSelected()
+    {
+        var c = Courses.FirstOrDefault(x => x.Id == _selectedCourseId);
+        _rows = c?.Enrolled.Select(s => new GradeRow { StudentId = s.Id, StudentName = s.FullName, Marks = 0 }).ToList() ?? new();
+    }
+
+    void ValidateRow(GradeRow r) => r.Error = (r.Marks < 0 || r.Marks > 100) ? "Marks must be 0-100" : "";
+
+    void Submit()
+    {
+        var c = Courses.First(x => x.Id == _selectedCourseId);
+        foreach (var r in _rows)
+        {
+            GradeSvc.SubmitGrade(new GradeRecord {
+                StudentId = r.StudentId, CourseId = c.Id,
+                CourseTitle = $"{c.Code} - {c.Title}",
+                CreditHours = c.CreditHours, Marks = r.Marks
+            });
+        }
+        _message = "Grades submitted successfully.";
+        _alert = AlertBox.AlertType.Success;
+    }
+
+    string GradeBadge(string g) => g switch { "A" => "bg-success", "B" => "bg-info", "C" => "bg-warning", "D" => "bg-orange", _ => "bg-danger" };
+
+    class GradeRow
+    {
+        public Guid StudentId { get; set; }
+        public string StudentName { get; set; } = "";
+        public int Marks { get; set; }
+        public string Error { get; set; } = "";
+        public string Grade => Marks switch { >= 85 => "A", >= 70 => "B", >= 55 => "C", >= 45 => "D", _ => "F" };
+    }
+}

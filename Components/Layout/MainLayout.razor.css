@@ -1,0 +1,32 @@
+/* MainLayout scoped styles */
+
+#blazor-error-ui {
+    background: #fff;
+    border-top: 3px solid var(--ec-danger, #dc2626);
+    bottom: 0;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, .08);
+    color: #991b1b;
+    display: none;
+    font-weight: 500;
+    left: 0;
+    padding: .9rem 1.5rem;
+    position: fixed;
+    right: 0;
+    width: 100%;
+    z-index: 2000;
+}
+
+    #blazor-error-ui .reload {
+        margin-left: 1rem;
+        color: #4f46e5;
+        font-weight: 600;
+    }
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.1rem;
+    }

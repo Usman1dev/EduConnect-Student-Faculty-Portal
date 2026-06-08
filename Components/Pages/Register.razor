@@ -1,0 +1,155 @@
+@page "/register"
+@layout EmptyLayout
+@inject IStudentService StudentService
+@inject NavigationManager Nav
+
+<AuthGuard RequireAuth="false">
+    <div class="auth-shell">
+        <div class="auth-card wide">
+            <div class="auth-header success">
+                <h4><i class="bi bi-person-plus-fill me-2"></i>Create your student account</h4>
+                <p>Join EduConnect in less than a minute</p>
+            </div>
+            <div class="auth-body">
+                <AlertBox Message="@successMessage" Type="AlertBox.AlertType.Success" />
+                <AlertBox Message="@errorMessage"   Type="AlertBox.AlertType.Error" />
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label"><i class="bi bi-person me-1 text-muted"></i> Full name</label>
+                        <input class="form-control @Invalid(nameof(registerModel.FullName))"
+                               @bind="registerModel.FullName" @bind:event="oninput"
+                               placeholder="Jane Doe" autocomplete="name" />
+                        <div class="invalid-feedback">Full name is required.</div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label"><i class="bi bi-envelope me-1 text-muted"></i> Email address</label>
+                        <input type="email" class="form-control @Invalid(nameof(registerModel.Email))"
+                               @bind="registerModel.Email" @bind:event="oninput"
+                               placeholder="student@edu.pk" autocomplete="email" />
+                        <div class="invalid-feedback">A valid email is required.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="bi bi-lock me-1 text-muted"></i> Password</label>
+                        <input type="password" class="form-control @Invalid(nameof(registerModel.Password))"
+                               @bind="registerModel.Password" @bind:event="oninput"
+                               placeholder="At least 6 characters" autocomplete="new-password" />
+                        <div class="invalid-feedback">Password must be at least 6 characters.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="bi bi-shield-lock me-1 text-muted"></i> Confirm password</label>
+                        <input type="password" class="form-control @Invalid(nameof(registerModel.ConfirmPassword))"
+                               @bind="registerModel.ConfirmPassword" @bind:event="oninput"
+                               placeholder="Re-enter password" autocomplete="new-password" />
+                        <div class="invalid-feedback">Passwords must match.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="bi bi-calendar3 me-1 text-muted"></i> Semester</label>
+                        <input type="number" min="1" max="8"
+                               class="form-control @Invalid(nameof(registerModel.Semester))"
+                               @bind="registerModel.Semester" />
+                        <div class="invalid-feedback">Semester must be 1 to 8.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="bi bi-award me-1 text-muted"></i> Initial CGPA</label>
+                        <input type="number" step="0.01" min="0" max="4"
+                               class="form-control @Invalid(nameof(registerModel.CGPA))"
+                               @bind="registerModel.CGPA" />
+                        <div class="invalid-feedback">CGPA must be 0.0 to 4.0.</div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input id="terms" type="checkbox"
+                                   class="form-check-input @Invalid(nameof(registerModel.AcceptTerms))"
+                                   @bind="registerModel.AcceptTerms" />
+                            <label for="terms" class="form-check-label">
+                                I agree to the <a href="#" class="text-primary">Terms of Service</a>
+                                and <a href="#" class="text-primary">Privacy Policy</a>
+                            </label>
+                            <div class="invalid-feedback">You must accept the terms.</div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <button type="button" class="btn btn-success btn-lg w-100"
+                                disabled="@isRegistering" @onclick="HandleRegister">
+                            @if (isRegistering)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Creating account…</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-check2-circle"></i>
+                                <span>Create account</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+
+                <div class="auth-link">
+                    Already have an account? <a href="/login">Sign in →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</AuthGuard>
+
+@code {
+    private RegisterModel registerModel = new();
+    private readonly HashSet<string> errors = new();
+    private bool isRegistering;
+    private string? successMessage;
+    private string? errorMessage;
+
+    private class RegisterModel
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+        public int Semester { get; set; } = 1;
+        public decimal CGPA { get; set; } = 0.0m;
+        public bool AcceptTerms { get; set; }
+    }
+
+    private string Invalid(string field) => errors.Contains(field) ? "is-invalid" : string.Empty;
+
+    private async Task HandleRegister()
+    {
+        errors.Clear(); successMessage = null; errorMessage = null;
+        if (string.IsNullOrWhiteSpace(registerModel.FullName)) errors.Add(nameof(registerModel.FullName));
+        if (string.IsNullOrWhiteSpace(registerModel.Email) || !registerModel.Email.Contains("@")) errors.Add(nameof(registerModel.Email));
+        if (registerModel.Password.Length < 6) errors.Add(nameof(registerModel.Password));
+        if (registerModel.ConfirmPassword != registerModel.Password) errors.Add(nameof(registerModel.ConfirmPassword));
+        if (registerModel.Semester < 1 || registerModel.Semester > 8) errors.Add(nameof(registerModel.Semester));
+        if (registerModel.CGPA < 0 || registerModel.CGPA > 4) errors.Add(nameof(registerModel.CGPA));
+        if (!registerModel.AcceptTerms) errors.Add(nameof(registerModel.AcceptTerms));
+        if (errors.Any()) { errorMessage = "Please correct the highlighted fields."; return; }
+
+        isRegistering = true;
+        try
+        {
+            await Task.Delay(150);
+            var student = new global::EduConnect.Models.Student
+            {
+                FullName = registerModel.FullName,
+                Email = registerModel.Email,
+                PasswordHash = registerModel.Password,
+                Semester = registerModel.Semester,
+                CGPA = registerModel.CGPA
+            };
+            StudentService.Add(student);
+            successMessage = $"Account created successfully. You can now log in with {student.Email}.";
+            registerModel = new();
+        }
+        catch (Exception ex) { errorMessage = ex.Message; }
+        finally { isRegistering = false; }
+    }
+}

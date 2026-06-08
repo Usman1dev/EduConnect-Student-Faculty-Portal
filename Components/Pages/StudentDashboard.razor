@@ -1,0 +1,99 @@
+@page "/student/dashboard"
+@inject AuthStateService AuthState
+
+<AuthGuard RequiredRole="Student">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-mortarboard text-info"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">Student Dashboard</h2>
+                <p class="mb-0 text-muted">
+                    Hi <strong>@Student.FullName</strong> · here's your academic snapshot
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#dcfce7;color:var(--ec-success);">
+                        <i class="bi bi-award-fill"></i>
+                    </div>
+                    <div class="stat-label">Current CGPA</div>
+                    <div class="stat-value text-success">@Student.CGPA.ToString("0.00")</div>
+                    <div class="progress mt-2" style="height:6px;">
+                        <div class="progress-bar bg-success" style="width:@(Math.Min(100, (double)Student.CGPA / 4 * 100))%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
+                    <div class="stat-label">Semester</div>
+                    <div class="stat-value">@Student.Semester</div>
+                    <div class="text-muted" style="font-size:.85rem;margin-top:.25rem;">of 8</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#fef3c7;color:#d97706;">
+                        <i class="bi bi-journal-bookmark-fill"></i>
+                    </div>
+                    <div class="stat-label">Enrolled courses</div>
+                    <div class="stat-value">@Student.Enrollments.Count</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a class="btn btn-primary" href="/student/enroll">
+            <i class="bi bi-plus-circle"></i> Enroll in a course
+        </a>
+        <a class="btn btn-outline-primary" href="/student/grades">
+            <i class="bi bi-award"></i> View my grades
+        </a>
+    </div>
+
+    <!-- My courses -->
+    <h4 class="mb-3" style="font-size:1.05rem;color:var(--ec-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">My courses</h4>
+    @if (!Student.Enrollments.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <span>You aren't enrolled in any courses yet. <a href="/student/enroll" class="ms-1">Browse the catalog →</a></span>
+        </div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var c in Student.Enrollments.OrderBy(c => c.Title))
+            {
+                <div class="list-group-item d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <div class="fw-bold">@c.Code</div>
+                        <div class="text-muted" style="font-size:.88rem;">@c.Title</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary">@c.CreditHours cr</span>
+                        <StatusBadge Status="@c.EnrollmentStatus.ToString()" />
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</AuthGuard>
+
+@code {
+    global::EduConnect.Models.Student Student => (global::EduConnect.Models.Student)AuthState.State.CurrentUser!;
+}

@@ -1,0 +1,172 @@
+@using EduConnect.Models
+@using EduConnect.Services
+@inject AuthStateService AuthState
+@inject IStudentService StudentService
+@inject NavigationManager Nav
+
+<div class="card h-100 shadow-sm border-0">
+    <div class="card-body">
+        <div class="d-flex align-items-start mb-3">
+            <div class="flex-shrink-0">
+                <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                    @GetInitials()
+                </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+                <h5 class="card-title mb-1">@Student.FullName</h5>
+                <p class="card-text text-muted small mb-2">
+                    <i class="bi bi-envelope me-1"></i> @Student.Email
+                </p>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-info me-2">
+                        <i class="bi bi-calendar3 me-1"></i>
+                        Semester @Student.Semester
+                    </span>
+                    <span class="badge @GetCGPABadgeClass()">
+                        <i class="bi bi-award me-1"></i>
+                        CGPA: @Student.CGPA.ToString("0.00")
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>Enrolled Courses</span>
+                <span>@Student.Enrollments.Count</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+                @{
+                    var maxCourses = 8; // Maximum typical courses per semester
+                    var coursePercentage = Math.Min((double)Student.Enrollments.Count / maxCourses * 100, 100);
+                }
+                <div class="progress-bar bg-success" role="progressbar" style="width: @coursePercentage%;"></div>
+            </div>
+        </div>
+
+        @if (Student.Grades.Any())
+        {
+            <div class="mb-3">
+                <h6 class="small text-muted mb-2">Recent Grades</h6>
+                <div class="d-flex flex-wrap gap-1">
+                    @foreach (var grade in Student.Grades.Take(3))
+                    {
+                        <span class="badge @GetGradeBadgeClass(grade.LetterGrade)">
+                            @grade.CourseTitle: @grade.LetterGrade
+                        </span>
+                    }
+                    @if (Student.Grades.Count > 3)
+                    {
+                        <span class="badge bg-secondary">+@(Student.Grades.Count - 3) more</span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    
+    @if (ShowActions)
+    {
+        <div class="card-footer bg-transparent border-top-0 pt-0">
+            <div class="btn-group w-100" role="group">
+                <button class="btn btn-outline-primary btn-sm" @onclick="ViewDetails" title="View Student Details">
+                    <i class="bi bi-eye"></i>
+                </button>
+                
+                @if (AuthState.State.IsAdmin)
+                {
+                    <button class="btn btn-outline-warning btn-sm" @onclick="EditStudent" title="Edit Student">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" @onclick="DeleteStudent" title="Delete Student">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public global::EduConnect.Models.Student Student { get; set; } = default!;
+
+    [Parameter]
+    public bool ShowActions { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<Student> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Student> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<Student> OnView { get; set; }
+
+    private string GetInitials()
+    {
+        if (string.IsNullOrWhiteSpace(Student.FullName))
+            return "??";
+        
+        var names = Student.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (names.Length >= 2)
+            return $"{names[0][0]}{names[^1][0]}".ToUpper();
+        
+        return names[0].Length >= 2 ? names[0].Substring(0, 2).ToUpper() : names[0].ToUpper();
+    }
+
+    private string GetCGPABadgeClass()
+    {
+        return Student.CGPA switch
+        {
+            >= 3.5m => "bg-success",
+            >= 2.5m => "bg-warning",
+            _ => "bg-danger"
+        };
+    }
+
+    private string GetGradeBadgeClass(string letterGrade)
+    {
+        return letterGrade switch
+        {
+            "A" => "bg-success",
+            "B" => "bg-info",
+            "C" => "bg-warning",
+            "D" => "bg-orange",
+            _ => "bg-danger"
+        };
+    }
+
+    private async Task ViewDetails()
+    {
+        await OnView.InvokeAsync(Student);
+        if (!OnView.HasDelegate)
+        {
+            Nav.NavigateTo($"/admin/students/{Student.Id}");
+        }
+    }
+
+    private async Task EditStudent()
+    {
+        await OnEdit.InvokeAsync(Student);
+    }
+
+    private async Task DeleteStudent()
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {Student.FullName}?");
+        if (confirmed)
+        {
+            try
+            {
+                StudentService.Delete(Student.Id);
+                await OnDelete.InvokeAsync(Student);
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Cannot delete student: {ex.Message}");
+            }
+        }
+    }
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+}

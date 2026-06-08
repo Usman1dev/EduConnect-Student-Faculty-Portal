@@ -1,0 +1,140 @@
+@page "/admin/students"
+@inject IStudentService StudentSvc
+@inject NavigationManager Nav
+
+<AuthGuard RequiredRole="Admin">
+    <div class="role-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center">
+                <div class="role-icon"><i class="bi bi-people-fill"></i></div>
+                <div class="ms-3">
+                    <h2 class="mb-1">Students</h2>
+                    <p class="mb-0 text-muted">Manage all student records</p>
+                </div>
+            </div>
+            <button class="btn btn-primary" @onclick="GoAdd">
+                <i class="bi bi-plus-circle"></i> Add student
+            </button>
+        </div>
+    </div>
+
+    <AlertBox Message="@_message" Type="@_alert" />
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="position-relative">
+                <i class="bi bi-search position-absolute" style="left:1rem;top:50%;transform:translateY(-50%);color:var(--ec-text-soft);"></i>
+                <input class="form-control" style="padding-left:2.5rem;"
+                       placeholder="Search by name or email…"
+                       @bind="_search" @bind:event="oninput" />
+            </div>
+        </div>
+    </div>
+
+    @{
+        var rows = FilteredStudents.ToList();
+    }
+
+    @if (!rows.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <span>No students match your search.</span>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th class="text-center">Semester</th>
+                        <th class="text-center">CGPA</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in rows)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle d-flex align-items-center justify-content-center rounded-circle text-white"
+                                         style="width:36px;height:36px;font-size:.78rem;">
+                                        @Initials(s.FullName)
+                                    </div>
+                                    <span class="fw-semibold">@s.FullName</span>
+                                </div>
+                            </td>
+                            <td class="text-muted">@s.Email</td>
+                            <td class="text-center"><span class="badge bg-info">@s.Semester</span></td>
+                            <td class="text-center">
+                                <span class="badge @CgpaBadge(s.CGPA)">@s.CGPA.ToString("0.00")</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => View(s)" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning" @onclick="() => Edit(s)" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(s)" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <ConfirmDialog IsVisible="_showConfirm" Title="Delete student"
+                   Message="@DeleteMessage"
+                   OnCancelled="CancelDelete" OnConfirmed="ConfirmDelete" />
+</AuthGuard>
+
+@code {
+    string _search = "";
+    string? _message;
+    AlertBox.AlertType _alert = AlertBox.AlertType.Info;
+    global::EduConnect.Models.Student? _toDelete;
+    bool _showConfirm;
+
+    List<global::EduConnect.Models.Student> FilteredStudents => StudentSvc.Search(_search);
+    string DeleteMessage => $"Are you sure you want to delete {_toDelete?.FullName}? This cannot be undone.";
+
+    void GoAdd() => Nav.NavigateTo("/admin/students/add");
+    void View(Student s) => Nav.NavigateTo($"/admin/students/{s.Id}");
+    void Edit(Student s) => Nav.NavigateTo($"/admin/students/edit/{s.Id}");
+    void AskDelete(Student s) { _toDelete = s; _showConfirm = true; }
+    void CancelDelete() { _showConfirm = false; _toDelete = null; }
+    void ConfirmDelete()
+    {
+        try
+        {
+            if (_toDelete != null) StudentSvc.Delete(_toDelete.Id);
+            _message = "Student deleted.";
+            _alert = AlertBox.AlertType.Success;
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _alert = AlertBox.AlertType.Error;
+        }
+        _showConfirm = false;
+    }
+
+    string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpper() : parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+    }
+
+    string CgpaBadge(decimal cgpa) => cgpa >= 3.5m ? "bg-success" : cgpa >= 2.5m ? "bg-warning" : "bg-danger";
+}

@@ -1,0 +1,4 @@
+@page "/dashboard"
+@inject NavigationManager Nav
+@inject AuthStateService AuthState
+@code { protected override void OnInitialized(){ var path = AuthState.State.CurrentUser switch { global::EduConnect.Models.Admin => "/admin/dashboard", global::EduConnect.Models.Faculty => "/faculty/dashboard", global::EduConnect.Models.Student => "/student/dashboard", _ => "/login" }; Nav.NavigateTo(path); } }

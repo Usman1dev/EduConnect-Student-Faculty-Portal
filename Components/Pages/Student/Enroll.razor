@@ -1,0 +1,63 @@
+@page "/student/enroll"
+@inject ICourseService CourseSvc
+@inject AuthStateService AuthState
+
+<AuthGuard RequiredRole="Student">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-plus-circle text-info"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">Course Enrollment</h2>
+                <p class="mb-0 text-muted">Browse the catalog and enroll in courses</p>
+            </div>
+        </div>
+    </div>
+
+    <AlertBox Message="@_message" Type="@_alert" />
+
+    <h4 class="mb-3" style="font-size:1.05rem;color:var(--ec-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Available courses</h4>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4 mb-5">
+        @foreach (var c in CourseSvc.GetAll()) { <div class="col"><CourseCard Course="c" OnEnroll="DoEnroll" /></div> }
+    </div>
+
+    <h4 class="mb-3" style="font-size:1.05rem;color:var(--ec-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">My enrolled courses</h4>
+    @if (!Student.Enrollments.Any())
+    {
+        <div class="alert alert-info"><i class="bi bi-info-circle"></i><span>You haven't enrolled in any courses yet.</span></div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var c in Student.Enrollments)
+            {
+                <div class="list-group-item d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <div class="fw-semibold">@c.Code</div>
+                        <div class="text-muted small">@c.Title</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" disabled="@(!c.IsActive)" @onclick="() => DoDrop(c)">
+                        <i class="bi bi-x-circle"></i> Drop
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</AuthGuard>
+
+@code {
+    string? _message;
+    AlertBox.AlertType _alert = AlertBox.AlertType.Info;
+    global::EduConnect.Models.Student Student => (global::EduConnect.Models.Student)AuthState.State.CurrentUser!;
+
+    void DoEnroll(Course c)
+    {
+        try { CourseSvc.EnrollStudent(c.Id, Student.Id); _message = $"Enrolled in {c.Code}."; _alert = AlertBox.AlertType.Success; }
+        catch (Exception ex) { _message = ex.Message; _alert = AlertBox.AlertType.Error; }
+    }
+
+    void DoDrop(Course c)
+    {
+        try { CourseSvc.DropCourse(c.Id, Student.Id); _message = $"Dropped {c.Code}."; _alert = AlertBox.AlertType.Success; }
+        catch (Exception ex) { _message = ex.Message; _alert = AlertBox.AlertType.Error; }
+    }
+}

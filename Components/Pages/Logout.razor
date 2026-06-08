@@ -1,0 +1,30 @@
+@page "/logout"
+@layout EmptyLayout
+@using EduConnect.Services
+@inject AuthStateService AuthState
+@inject NavigationManager Nav
+
+<div class="auth-shell">
+    <div class="auth-card">
+        <div class="auth-header" style="background:linear-gradient(135deg,#64748b,#475569);">
+            <h4><i class="bi bi-box-arrow-left me-2"></i>Signing you out</h4>
+            <p>Please wait a moment…</p>
+        </div>
+        <div class="auth-body text-center" style="padding:3rem 2rem;">
+            <div class="spinner-border" style="width:3.5rem;height:3.5rem;" role="status">
+                <span class="visually-hidden">Loading…</span>
+            </div>
+            <h5 class="mt-4 mb-2">See you soon!</h5>
+            <p class="text-muted mb-0">You'll be redirected to the sign-in page shortly.</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState.Logout();
+        await Task.Delay(1500);
+        Nav.NavigateTo("/login", forceLoad: false);
+    }
+}

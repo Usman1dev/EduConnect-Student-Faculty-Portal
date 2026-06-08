@@ -1,0 +1,26 @@
+@page "/unauthorized"
+@inject NavigationManager Nav
+
+<div class="error-shell">
+    <div>
+        <div style="font-size:4rem;color:var(--ec-danger);margin-bottom:1rem;">
+            <i class="bi bi-shield-exclamation"></i>
+        </div>
+        <div class="error-code" style="background:linear-gradient(135deg,#dc2626,#f59e0b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">403</div>
+        <h2 class="mb-2">Access denied</h2>
+        <p class="lead mb-4">
+            You don't have permission to view this page. If you believe this is an error,
+            contact your administrator.
+        </p>
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <button class="btn btn-primary btn-lg" @onclick="Back">
+                <i class="bi bi-arrow-left"></i> Back to dashboard
+            </button>
+            <a href="/login" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-box-arrow-in-right"></i> Sign in as another user
+            </a>
+        </div>
+    </div>
+</div>
+
+@code { void Back() => Nav.NavigateTo("/"); }

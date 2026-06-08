@@ -1,0 +1,172 @@
+@using EduConnect.Models
+@using EduConnect.Services
+@using EduConnect.Data
+@inject AuthStateService AuthState
+@inject EduConnectDbContext DbContext
+
+<div class="role-layout">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <div class="role-header mb-4">
+            <div class="d-flex align-items-center">
+                <div class="role-icon me-3">
+                    @if (AuthState.State.IsAdmin)
+                    {
+                        <i class="bi bi-shield-check display-4 text-primary"></i>
+                    }
+                    else if (AuthState.State.IsFaculty)
+                    {
+                        <i class="bi bi-person-badge display-4 text-success"></i>
+                    }
+                    else if (AuthState.State.IsStudent)
+                    {
+                        <i class="bi bi-mortarboard display-4 text-info"></i>
+                    }
+                    else
+                    {
+                        <i class="bi bi-person display-4 text-secondary"></i>
+                    }
+                </div>
+                <div>
+                    <h2 class="mb-1">@Title</h2>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-person-circle me-1"></i>
+                        @AuthState.State.CurrentUser?.FullName
+                        <span class="badge ms-2 @GetRoleBadgeClass()">@AuthState.State.Role</span>
+                    </p>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(Description))
+            {
+                <p class="mt-3 text-muted">@Description</p>
+            }
+        </div>
+    }
+
+    <div class="role-content">
+        @ChildContent
+    </div>
+
+    @if (ShowStats && AuthState.State.IsAuthenticated)
+    {
+        <div class="role-stats mt-5 pt-4 border-top">
+            <h5 class="mb-3">
+                <i class="bi bi-graph-up me-2"></i>
+                Quick Stats
+            </h5>
+            <div class="row">
+                @if (AuthState.State.IsAdmin)
+                {
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Total Students</h6>
+                                <h4 class="card-title text-primary">@GetStudentCount()</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Active Courses</h6>
+                                <h4 class="card-title text-success">@GetCourseCount()</h4>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (AuthState.State.IsFaculty)
+                {
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Assigned Courses</h6>
+                                <h4 class="card-title text-success">@GetFacultyCourseCount()</h4>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (AuthState.State.IsStudent)
+                {
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Current CGPA</h6>
+                                <h4 class="card-title text-info">@GetStudentCGPA()</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Enrolled Courses</h6>
+                                <h4 class="card-title text-warning">@GetStudentEnrollmentCount()</h4>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string? Description { get; set; }
+
+    [Parameter]
+    public bool ShowStats { get; set; } = true;
+
+    private string GetRoleBadgeClass()
+    {
+        return AuthState.State.Role switch
+        {
+            "Admin" => "bg-primary",
+            "Faculty" => "bg-success",
+            "Student" => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+
+    private int GetStudentCount()
+    {
+        return DbContext.Students.Count();
+    }
+
+    private int GetCourseCount()
+    {
+        return DbContext.Courses.Count();
+    }
+
+    private int GetFacultyCourseCount()
+    {
+        if (AuthState.State.CurrentUser is global::EduConnect.Models.Faculty faculty)
+        {
+            return DbContext.FacultyCourses.Count(fc => fc.FacultyId == faculty.Id);
+        }
+        return 0;
+    }
+
+    private string GetStudentCGPA()
+    {
+        if (AuthState.State.CurrentUser is global::EduConnect.Models.Student student)
+        {
+            return student.CGPA.ToString("0.00");
+        }
+        return "0.00";
+    }
+
+    private int GetStudentEnrollmentCount()
+    {
+        if (AuthState.State.CurrentUser is global::EduConnect.Models.Student student)
+        {
+            return DbContext.StudentCourses.Count(sc => sc.StudentId == student.Id);
+        }
+        return 0;
+    }
+}

@@ -1,0 +1,82 @@
+@using EduConnect.Models
+
+<span class="badge @GetBadgeClass()" style="@(AdditionalStyles)">
+    @if (Icon != null)
+    {
+        <i class="@Icon me-1"></i>
+    }
+    @Text
+</span>
+
+@code {
+    [Parameter]
+    public string Status { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Text { get; set; }
+
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public string AdditionalStyles { get; set; } = string.Empty;
+
+    [Parameter]
+    public BadgeSize Size { get; set; } = BadgeSize.Normal;
+
+    private string GetBadgeClass()
+    {
+        var baseClass = "badge";
+
+        // Size class
+        var sizeClass = Size switch
+        {
+            BadgeSize.Small => "badge-sm",
+            BadgeSize.Large => "badge-lg",
+            _ => ""
+        };
+
+        // Color class based on status
+        var colorClass = GetColorClass();
+
+        return $"{baseClass} {sizeClass} {colorClass}".Trim();
+    }
+
+    private string GetColorClass()
+    {
+        if (string.IsNullOrWhiteSpace(Status))
+            return "bg-secondary";
+
+        var statusLower = Status.ToLowerInvariant();
+
+        // Map common status values to Bootstrap badge classes
+        return statusLower switch
+        {
+            "active" or "open" or "success" or "completed" or "enrolled" => "bg-success",
+            "inactive" or "closed" or "full" or "danger" or "error" => "bg-danger",
+            "pending" or "warning" or "almostfull" => "bg-warning text-dark",
+            "info" or "processing" => "bg-info",
+            "primary" or "default" => "bg-primary",
+            "secondary" => "bg-secondary",
+            "light" => "bg-light text-dark",
+            "dark" => "bg-dark",
+            _ => "bg-secondary" // default
+        };
+    }
+
+    protected override void OnParametersSet()
+    {
+        // If Text is not provided, use Status as display text
+        if (string.IsNullOrEmpty(Text))
+        {
+            Text = Status;
+        }
+    }
+
+    public enum BadgeSize
+    {
+        Small,
+        Normal,
+        Large
+    }
+}

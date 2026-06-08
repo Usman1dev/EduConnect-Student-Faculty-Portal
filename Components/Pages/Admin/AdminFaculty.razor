@@ -1,0 +1,180 @@
+@page "/admin/faculty"
+@using EduConnect.Models
+@using EduConnect.Services
+@inject FacultyService FacultyService
+@inject NavigationManager Nav
+
+<AuthGuard RequiredRole="Admin">
+    <div class="role-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center">
+                <div class="role-icon"><i class="bi bi-person-workspace"></i></div>
+                <div class="ms-3">
+                    <h2 class="mb-1">Faculty</h2>
+                    <p class="mb-0 text-muted">Manage faculty accounts</p>
+                </div>
+            </div>
+            <button class="btn btn-primary" @onclick="ShowAddForm">
+                <i class="bi bi-plus-circle"></i> Add faculty
+            </button>
+        </div>
+    </div>
+
+    <AlertBox Message="@errorMessage" Type="AlertBox.AlertType.Error" />
+
+    @if (showAddForm)
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Add New Faculty</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" @bind="newFaculty.FullName" placeholder="Dr. John Doe" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" @bind="newFaculty.Email" placeholder="faculty@educonnect.edu" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" @bind="newPassword" placeholder="Minimum 6 characters" />
+                    </div>
+                    <div class="col-12 d-flex gap-2 mt-4">
+                        <button class="btn btn-success" @onclick="AddFaculty">
+                            <i class="bi bi-check-circle"></i> Save Faculty
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="CancelAddForm">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th class="text-center">Assigned Courses</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var faculty in FacultyService.GetAll())
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-circle d-flex align-items-center justify-content-center rounded-circle text-white"
+                                     style="width:36px;height:36px;font-size:.78rem; background: linear-gradient(135deg, #6b7280, #374151) !important; box-shadow: none;">
+                                    @Initials(faculty.FullName)
+                                </div>
+                                <span class="fw-semibold">@faculty.FullName</span>
+                            </div>
+                        </td>
+                        <td class="text-muted">@faculty.Email</td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary">@faculty.AssignedCourses.Count</span>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(faculty)" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <ConfirmDialog IsVisible="_showConfirm" Title="Delete faculty"
+                   Message="@DeleteMessage"
+                   OnCancelled="CancelDelete" OnConfirmed="ConfirmDelete" />
+
+</AuthGuard>
+
+@code {
+    private Faculty newFaculty = new();
+    private string newPassword = "";
+    private bool showAddForm = false;
+    private string errorMessage = "";
+    
+    private Faculty? _toDelete;
+    private bool _showConfirm;
+
+    private string DeleteMessage => $"Are you sure you want to delete {_toDelete?.FullName}? This cannot be undone.";
+
+    private void ShowAddForm()
+    {
+        showAddForm = true;
+        newFaculty = new();
+        newPassword = "";
+        errorMessage = "";
+    }
+
+    private void CancelAddForm()
+    {
+        showAddForm = false;
+        errorMessage = "";
+    }
+
+    private void AddFaculty()
+    {
+        try
+        {
+            errorMessage = "";
+            newFaculty.PasswordHash = newPassword;
+            FacultyService.Add(newFaculty);
+            showAddForm = false;
+            newFaculty = new();
+            newPassword = "";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void AskDelete(Faculty f)
+    {
+        _toDelete = f;
+        _showConfirm = true;
+    }
+
+    private void CancelDelete()
+    {
+        _showConfirm = false;
+        _toDelete = null;
+    }
+
+    private void ConfirmDelete()
+    {
+        try
+        {
+            if (_toDelete != null)
+            {
+                FacultyService.Delete(_toDelete.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            _showConfirm = false;
+            _toDelete = null;
+        }
+    }
+
+    private string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpper() : parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+    }
+}

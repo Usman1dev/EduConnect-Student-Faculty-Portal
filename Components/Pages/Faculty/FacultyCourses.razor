@@ -1,0 +1,27 @@
+@page "/faculty/courses"
+@inject ICourseService CourseSvc
+@inject AuthStateService AuthState
+
+<AuthGuard RequiredRole="Faculty">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-collection-fill text-success"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">My Courses</h2>
+                <p class="mb-0 text-muted">Courses you teach this term</p>
+            </div>
+        </div>
+    </div>
+
+    @{ var list = CourseSvc.GetForFaculty(AuthState.State.CurrentUser!.Id).ToList(); }
+    @if (!list.Any())
+    {
+        <div class="alert alert-info"><i class="bi bi-info-circle"></i><span>No courses assigned to you yet.</span></div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
+            @foreach (var c in list) { <div class="col"><CourseCard Course="c" /></div> }
+        </div>
+    }
+</AuthGuard>

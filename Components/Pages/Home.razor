@@ -1,0 +1,210 @@
+@page "/"
+@layout EmptyLayout
+@using EduConnect.Services
+@using EduConnect.Models
+@using EduConnect.Data
+@inject AuthStateService AuthState
+@inject NavigationManager Nav
+@inject EduConnectDbContext DbContext
+
+@if (AuthState.State.IsAuthenticated)
+{
+    <text></text>
+}
+else
+{
+<div style="min-height:100vh; background: var(--ec-bg);">
+    <!-- Top bar -->
+    <nav class="navbar">
+        <div class="container-fluid" style="max-width: 1400px; padding-left: clamp(1rem, 3vw, 2rem); padding-right: clamp(1rem, 3vw, 2rem);">
+            <a class="navbar-brand" href="/">EduConnect</a>
+            <div class="d-flex align-items-center gap-2">
+                <a href="/login" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-box-arrow-in-right"></i> Sign in
+                </a>
+                <a href="/register" class="btn btn-primary btn-sm">
+                    <i class="bi bi-person-plus"></i> Get started
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container-fluid" style="max-width: 1400px; padding-left: clamp(1rem, 3vw, 2rem); padding-right: clamp(1rem, 3vw, 2rem); padding-top: 4rem;">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6">
+                    <span class="hero-eyebrow">
+                        <i class="bi bi-stars"></i> Modern academic management
+                    </span>
+                    <h1>
+                        Everything your campus needs,
+                        <span class="gradient-text">in one place.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        EduConnect brings students, faculty and administrators together —
+                        course enrollment, grade tracking, announcements and reporting —
+                        in a single elegant portal.
+                    </p>
+                    <div class="hero-cta">
+                        <a href="/login" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign in
+                        </a>
+                        <a href="/register" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-person-plus"></i> Create student account
+                        </a>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <div class="num">@DbContext.Students.Count()<small style="font-size:1rem;color:var(--ec-text-muted);">+</small></div>
+                            <div class="lbl">Active students</div>
+                        </div>
+                        <div class="hero-stat">
+                            <div class="num">@DbContext.Courses.Count()</div>
+                            <div class="lbl">Courses offered</div>
+                        </div>
+                        <div class="hero-stat">
+                            <div class="num">3</div>
+                            <div class="lbl">User roles</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 d-none d-lg-block">
+                    <div class="hero-visual">
+                        <div class="hero-card hero-card-1">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="feature-icon" style="width:38px;height:38px;font-size:1.1rem;margin-bottom:0;">
+                                    <i class="bi bi-mortarboard"></i>
+                                </div>
+                                <div class="ms-2">
+                                    <div style="font-weight:700;font-size:.9rem;">CGPA</div>
+                                    <div style="font-size:.78rem;color:var(--ec-text-muted);">Live tracking</div>
+                                </div>
+                                <div class="ms-auto" style="font-weight:800;font-size:1.5rem;color:var(--ec-success);">3.78</div>
+                            </div>
+                            <div class="progress" style="height:6px;"><div class="progress-bar bg-success" style="width:88%"></div></div>
+                            <div class="d-flex justify-content-between mt-2" style="font-size:.75rem;color:var(--ec-text-muted);">
+                                <span>Semester 5</span><span>Top 12%</span>
+                            </div>
+                        </div>
+
+                        <div class="hero-card hero-card-2">
+                            <div style="font-weight:600;font-size:.78rem;color:var(--ec-text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Recent grades</div>
+                            <div class="d-flex justify-content-between align-items-center py-1">
+                                <span style="font-size:.85rem;font-weight:500;">CS-301 Data Structures</span>
+                                <span class="badge bg-success">A</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-1">
+                                <span style="font-size:.85rem;font-weight:500;">MA-201 Calculus II</span>
+                                <span class="badge bg-info">B</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-1">
+                                <span style="font-size:.85rem;font-weight:500;">EN-101 Communication</span>
+                                <span class="badge bg-success">A</span>
+                            </div>
+                        </div>
+
+                        <div class="hero-card hero-card-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-bell-fill" style="color:var(--ec-warning);font-size:1.2rem;"></i>
+                                <div class="ms-2">
+                                    <div style="font-weight:700;font-size:.88rem;">New announcement</div>
+                                    <div style="font-size:.78rem;color:var(--ec-text-muted);">Mid-term schedule released</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="feature-section" style="background:#fff; border-top:1px solid var(--ec-border);">
+        <div class="container-fluid" style="max-width: 1400px; padding-left: clamp(1rem, 3vw, 2rem); padding-right: clamp(1rem, 3vw, 2rem);">
+            <div class="text-center mb-5">
+                <div class="section-eyebrow">Built for everyone</div>
+                <h2 class="section-title">One portal, three powerful experiences</h2>
+                <p class="lead mx-auto" style="max-width:640px;">
+                    Tailored views for students, faculty, and administrators —
+                    each with the tools they need, none of the clutter they don't.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-mortarboard"></i></div>
+                        <h3>For students</h3>
+                        <p>Browse the catalog, enroll in courses, track your CGPA and view real-time grade updates from faculty.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-person-badge"></i></div>
+                        <h3>For faculty</h3>
+                        <p>Manage assigned courses, see your enrolled students, and submit grades with built-in validation.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-shield-check"></i></div>
+                        <h3>For admins</h3>
+                        <p>Full CRUD on students and courses, ranked grade reports, and one-click broadcasts to any audience.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-bell"></i></div>
+                        <h3>Real-time notifications</h3>
+                        <p>Stay in the loop with role-targeted announcements, grade postings and enrollment confirmations.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-graph-up"></i></div>
+                        <h3>Insightful reports</h3>
+                        <p>Ranked CGPA leaderboards, distribution buckets and per-student grade history at a glance.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-phone"></i></div>
+                        <h3>Fully responsive</h3>
+                        <p>A polished, accessible interface that works beautifully on phones, tablets and desktops alike.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-5 pt-4">
+                <a href="/login" class="btn btn-primary btn-lg">
+                    <i class="bi bi-arrow-right-circle"></i> Open your dashboard
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background:var(--ec-surface-2); border-top:1px solid var(--ec-border); padding:2rem 0; text-align:center; color:var(--ec-text-muted); font-size:.88rem;">
+        © @DateTime.Now.Year EduConnect · A modern academic portal
+    </footer>
+</div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (AuthState.State.IsAuthenticated)
+        {
+            var path = AuthState.State.CurrentUser switch
+            {
+                global::EduConnect.Models.Admin   => "/admin/dashboard",
+                global::EduConnect.Models.Faculty => "/faculty/dashboard",
+                global::EduConnect.Models.Student => "/student/dashboard",
+                _ => "/login"
+            };
+            Nav.NavigateTo(path);
+        }
+    }
+}

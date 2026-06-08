@@ -1,0 +1,171 @@
+@using EduConnect.Models
+@implements IDisposable
+@using EduConnect.Services
+@inject AuthStateService AuthState
+@inject NotificationService NotificationService
+@inject NavigationManager Nav
+
+<div class="dropdown">
+    <button class="notif-bell" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+        <i class="bi bi-bell"></i>
+        @if (UnreadCount > 0)
+        {
+            <span class="notif-badge">@(UnreadCount > 99 ? "99+" : UnreadCount.ToString())</span>
+            <span class="visually-hidden">@UnreadCount unread notifications</span>
+        }
+    </button>
+    
+    <div class="dropdown-menu dropdown-menu-end p-0" style="min-width: 320px; max-height: 400px; overflow-y: auto;" aria-labelledby="notificationDropdown">
+        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+            <h6 class="mb-0">Notifications</h6>
+            @if (UnreadCount > 0)
+            {
+                <button class="btn btn-sm btn-outline-secondary" @onclick="MarkAllAsRead">
+                    Mark all read
+                </button>
+            }
+        </div>
+        
+        @if (Notifications.Any())
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var notification in Notifications)
+                {
+                    <button type="button" class="list-group-item list-group-item-action border-0 text-start @(notification.IsRead ? "" : "bg-light")" @onclick="() => MarkAsRead(notification)">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                <i class="bi @GetNotificationIcon(notification.NotificationType) me-2"></i>
+                                @GetNotificationTypeText(notification.NotificationType)
+                            </h6>
+                            <small class="text-muted">@GetTimeAgo(notification.Timestamp)</small>
+                        </div>
+                        <p class="mb-1 small">@notification.Message</p>
+                        @if (!notification.IsRead)
+                        {
+                            <span class="badge bg-primary">New</span>
+                        }
+                    </button>
+                }
+            </div>
+            
+            <div class="p-3 border-top text-center">
+                <a href="/notifications" class="btn btn-outline-primary btn-sm w-100">
+                    View All Notifications
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-4">
+                <i class="bi bi-bell-slash display-4 text-muted mb-3"></i>
+                <p class="text-muted mb-0">No notifications yet</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Notification> Notifications { get; set; } = new();
+    private int UnreadCount { get; set; }
+
+    protected override void OnInitialized()
+    {
+        LoadNotifications();
+        
+        // Subscribe to new notifications
+        NotificationService.OnNewNotification += OnNewNotification;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize Bootstrap dropdown
+            await JSRuntime.InvokeVoidAsync("eval", 
+                "new bootstrap.Dropdown(document.getElementById('notificationDropdown'))");
+        }
+    }
+
+    private void LoadNotifications()
+    {
+        if (AuthState.State.CurrentUser?.Id is Guid userId)
+        {
+            Notifications = NotificationService.GetForUser(userId)
+                .Take(5)
+                .ToList();
+            UnreadCount = NotificationService.GetUnreadCount(userId);
+        }
+    }
+
+    private void OnNewNotification(Notification notification)
+    {
+        if (notification.UserId == AuthState.State.CurrentUser?.Id)
+        {
+            LoadNotifications();
+            StateHasChanged();
+        }
+    }
+
+    private void MarkAsRead(Notification notification)
+    {
+        NotificationService.MarkAsRead(notification.Id);
+        LoadNotifications();
+        StateHasChanged();
+    }
+
+    private void MarkAllAsRead()
+    {
+        if (AuthState.State.CurrentUser?.Id is Guid userId)
+        {
+            NotificationService.MarkAllAsRead(userId);
+            LoadNotifications();
+            StateHasChanged();
+        }
+    }
+
+    private string GetNotificationIcon(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Enrollment => "bi-person-plus",
+            NotificationType.GradePosted => "bi-card-checklist",
+            NotificationType.Announcement => "bi-megaphone",
+            _ => "bi-bell"
+        };
+    }
+
+    private string GetNotificationTypeText(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Enrollment => "Enrollment",
+            NotificationType.GradePosted => "Grade Posted",
+            NotificationType.Announcement => "Announcement",
+            _ => "Notification"
+        };
+    }
+
+    private string GetTimeAgo(DateTime timestamp)
+    {
+        var timeSpan = DateTime.Now - timestamp;
+        
+        if (timeSpan.TotalMinutes < 1)
+            return "Just now";
+        if (timeSpan.TotalHours < 1)
+            return $"{(int)timeSpan.TotalMinutes}m ago";
+        if (timeSpan.TotalDays < 1)
+            return $"{(int)timeSpan.TotalHours}h ago";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays}d ago";
+        
+        return timestamp.ToString("MMM d");
+    }
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = default!;
+
+    public void Dispose()
+    {
+        NotificationService.OnNewNotification -= OnNewNotification;
+    }
+}

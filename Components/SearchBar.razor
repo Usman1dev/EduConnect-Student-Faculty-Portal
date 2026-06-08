@@ -1,0 +1,138 @@
+@using System.Timers
+@implements IDisposable
+
+<div class="search-bar">
+    <div class="input-group">
+        <span class="input-group-text bg-light border-end-0">
+            <i class="bi bi-search"></i>
+        </span>
+        <input type="text"
+               class="form-control border-start-0"
+               placeholder="@Placeholder"
+               @bind="SearchText"
+               @bind:event="oninput"
+               @onkeyup="HandleKeyUp"
+               autocomplete="off" />
+        
+        @if (!string.IsNullOrEmpty(SearchText))
+        {
+            <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
+                <i class="bi bi-x"></i>
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-outline-secondary" type="button" disabled>
+                <i class="bi bi-arrow-right"></i>
+            </button>
+        }
+    </div>
+    
+    @if (ShowSuggestions && Suggestions.Any())
+    {
+        <div class="suggestions-dropdown mt-1 border rounded shadow-sm bg-white">
+            <div class="list-group list-group-flush">
+                @foreach (var suggestion in Suggestions.Take(MaxSuggestions))
+                {
+                    <button type="button" 
+                            class="list-group-item list-group-item-action border-0"
+                            @onclick="() => SelectSuggestion(suggestion)">
+                        @suggestion
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Placeholder { get; set; } = "Search...";
+
+    [Parameter]
+    public int DebounceMilliseconds { get; set; } = 300;
+
+    [Parameter]
+    public bool ShowSuggestions { get; set; } = true;
+
+    [Parameter]
+    public int MaxSuggestions { get; set; } = 5;
+
+    [Parameter]
+    public List<string> Suggestions { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<string> OnSearch { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnSuggestionSelected { get; set; }
+
+    private string _searchText = "";
+    private Timer? _debounceTimer;
+
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText != value)
+            {
+                _searchText = value;
+                DebounceSearch();
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _debounceTimer = new Timer(DebounceMilliseconds);
+        _debounceTimer.AutoReset = false;
+        _debounceTimer.Elapsed += async (sender, e) => await InvokeSearchAsync();
+    }
+
+    private void DebounceSearch()
+    {
+        _debounceTimer?.Stop();
+        _debounceTimer?.Start();
+    }
+
+    private async Task InvokeSearchAsync()
+    {
+        await OnSearch.InvokeAsync(SearchText);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            _debounceTimer?.Stop();
+            InvokeSearchAsync().ConfigureAwait(false);
+        }
+        else if (e.Key == "Escape")
+        {
+            ClearSearch();
+        }
+    }
+
+    private void ClearSearch()
+    {
+        SearchText = "";
+        _debounceTimer?.Stop();
+        OnSearch.InvokeAsync("").ConfigureAwait(false);
+    }
+
+    private async Task SelectSuggestion(string suggestion)
+    {
+        SearchText = suggestion;
+        _debounceTimer?.Stop();
+        await OnSuggestionSelected.InvokeAsync(suggestion);
+        await OnSearch.InvokeAsync(suggestion);
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Stop();
+        _debounceTimer?.Dispose();
+    }
+}

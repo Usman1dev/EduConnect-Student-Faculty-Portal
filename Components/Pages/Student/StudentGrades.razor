@@ -1,0 +1,32 @@
+@page "/student/grades"
+@inject AuthStateService AuthState
+
+<AuthGuard RequiredRole="Student">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-award-fill text-info"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">My Grades</h2>
+                <p class="mb-0 text-muted">Your academic record at a glance</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4 stat-card">
+        <div class="card-body">
+            <div class="stat-icon" style="background:#dcfce7;color:var(--ec-success);"><i class="bi bi-award-fill"></i></div>
+            <div class="stat-label">Current CGPA</div>
+            <div class="stat-value text-success">@Student.CGPA.ToString("0.00")</div>
+            <div class="progress mt-2" style="height:8px;max-width:300px;">
+                <div class="progress-bar bg-success" style="width:@(Math.Min(100, (double)Student.CGPA / 4 * 100))%"></div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3" style="font-size:1.05rem;color:var(--ec-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Grade history</h4>
+    <GradeTable Grades="Student.Grades" />
+</AuthGuard>
+
+@code {
+    global::EduConnect.Models.Student Student => (global::EduConnect.Models.Student)AuthState.State.CurrentUser!;
+}

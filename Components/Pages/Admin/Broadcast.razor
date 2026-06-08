@@ -1,0 +1,57 @@
+@page "/admin/notifications"
+@using EduConnect.Data
+@inject NotificationService NotifSvc
+@inject EduConnectDbContext DbContext
+
+<AuthGuard RequiredRole="Admin">
+    <div class="role-header">
+        <div class="d-flex align-items-center">
+            <div class="role-icon"><i class="bi bi-megaphone-fill"></i></div>
+            <div class="ms-3">
+                <h2 class="mb-1">Broadcast Announcement</h2>
+                <p class="mb-0 text-muted">Send a message to selected user roles</p>
+            </div>
+        </div>
+    </div>
+
+    <AlertBox Message="@_message" Type="@_alert" />
+
+    <div class="card">
+        <div class="card-body">
+            <label class="form-label fw-semibold">Message</label>
+            <textarea class="form-control mb-3" rows="5" placeholder="Type your announcement…" @bind="_text"></textarea>
+
+            <label class="form-label fw-semibold">Send to</label>
+            <div class="d-flex gap-3 flex-wrap mb-4">
+                <div class="form-check"><input id="r1" class="form-check-input" type="checkbox" @bind="_students" /><label for="r1" class="form-check-label"><i class="bi bi-mortarboard me-1"></i>Students</label></div>
+                <div class="form-check"><input id="r2" class="form-check-input" type="checkbox" @bind="_faculty" /><label for="r2" class="form-check-label"><i class="bi bi-person-badge me-1"></i>Faculty</label></div>
+                <div class="form-check"><input id="r3" class="form-check-input" type="checkbox" @bind="_admins" /><label for="r3" class="form-check-label"><i class="bi bi-shield-check me-1"></i>Admins</label></div>
+            </div>
+
+            <button class="btn btn-primary" disabled="@Disabled" @onclick="Send">
+                <i class="bi bi-send"></i> Send broadcast
+            </button>
+        </div>
+    </div>
+</AuthGuard>
+
+@code {
+    string _text = "";
+    bool _students, _faculty, _admins;
+    string? _message;
+    AlertBox.AlertType _alert = AlertBox.AlertType.Info;
+
+    bool Disabled => string.IsNullOrWhiteSpace(_text) || !(_students || _faculty || _admins);
+
+    void Send()
+    {
+        foreach (var u in DbContext.People.ToList())
+        {
+            if ((_students && u is Student) || (_faculty && u is Faculty) || (_admins && u is Admin))
+                NotifSvc.AddNotification(_text, NotificationType.Announcement, u.Id);
+        }
+        _message = "Broadcast sent successfully.";
+        _alert = AlertBox.AlertType.Success;
+        _text = "";
+    }
+}
